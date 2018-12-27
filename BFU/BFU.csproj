@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <LangVersion>7.1</LangVersion>
+    <Authors>Béla Bokor</Authors>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>BFU.snk</AssemblyOriginatorKeyFile>
+    <Company>Brain2CPU</Company>
+    <Description>Background FIle Uploader</Description>
+    <Copyright>Copyright © 2018 - 2019 Béla Bokor</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BFUlib\BFUlib.csproj" />
+  </ItemGroup>
+</Project>

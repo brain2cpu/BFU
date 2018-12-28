@@ -8,8 +8,8 @@ namespace BFUlib
 {
     public class FileWatcher
     {
-        //a file with this name created in the root of watched directory will raise the ExitRequested event and delete the new file
-        public string ExitRequestFile { get; set; } = ".exit";
+        //a file with this name (if set) created in the root of watched directory will raise the ExitRequested event and delete the new file
+        public string ExitRequestFile { get; set; } = "";
 
         public event Action ExitRequested;
 

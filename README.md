@@ -14,7 +14,7 @@ If your developer machine doesn't already support .NET core you must download an
  - `dotnet BFU/bin/Release/netcoreapp2.1/BFU.dll`
 
 Now you have the binary version of the application, you can move it or create some symbolic links for easier use.
-Executing BFU without arguments will generate an example configuration file in the current directory (as stated in the output too) an exit the program. This json file will be explained below.
+Executing BFU without arguments will generate an example configuration file in the current directory (as stated in the output too) and exit the program. This json file will be explained below.
 
 ## The configuration file
 
@@ -76,7 +76,7 @@ To cover various folder structures this example is from a Windows development ma
 
 #### AllowMultiThreadedUpload
 
-BFU allows multiple simultaneous targets, this key states if the SCP and/or FTP transfers should go in the same time or one by one.
+BFU allows multiple simultaneous targets, this key states whether the SCP and/or FTP transfers should go in the same time or one by one.
 
 #### TargetList
 This is the most important part of the configuration file, must contain at least one target. Every  target location is defined here by the following keys:
@@ -87,7 +87,7 @@ This is the most important part of the configuration file, must contain at least
 
 #### IgnorePatterns
 
-This is list of regular expressions defining file patterns to be ignored. The list can be empty, the default from our example will ignore any subdirectory or file with a name starting with a dot (ex. .git)
+This is a list of regular expressions defining file patterns to be ignored. The list can be empty, the default from our example will ignore any subdirectory or file with a name starting with a dot (ex. .git)
 
 #### LocalPath
 
@@ -100,3 +100,9 @@ All operations will be logged in this file.
 #### ChangeListPath
 
 This optional file will contain a list of all uploaded files. Every file appears only once, and the only way to reset the list is to delete or empty it manually.
+
+## Usage
+
+After your specific configuration file (ex. my.json) is ready you should start BFU:
+`dotnet BFU/bin/Release/netcoreapp2.1/BFU.dll my.json`
+and go on with your development tasks.

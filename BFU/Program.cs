@@ -36,7 +36,8 @@ namespace BFU
             var changes = string.IsNullOrEmpty(settings.ChangeListPath) ? null : new ChangeList(settings.ChangeListPath);
 
             var fileHandler = new FileHandler(settings);
-            var fileWatcher = new FileWatcher(settings.LocalPath, settings.IgnorePatterns);
+            var fileWatcher = new FileWatcher(settings.LocalPath, settings.IgnorePatterns)
+                {ExitRequestFile = ".exit"};
 
             try
             {

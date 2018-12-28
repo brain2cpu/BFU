@@ -104,5 +104,7 @@ This optional file will contain a list of all uploaded files. Every file appears
 ## Usage
 
 After your specific configuration file (ex. my.json) is ready you should start BFU:
+
 `dotnet BFU/bin/Release/netcoreapp2.1/BFU.dll my.json`
+
 and go on with your development tasks.

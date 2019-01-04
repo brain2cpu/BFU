@@ -54,7 +54,7 @@ namespace BFUlib
 
         public List<Location> TargetList { get; } = new List<Location>();
 
-        public IgnorePatterns IgnorePatterns { get; }
+        public IgnorePatterns IgnorePatterns { get; } = new IgnorePatterns();
 
         private string _localPath;
         public string LocalPath
@@ -65,12 +65,6 @@ namespace BFUlib
 
         public string LogPath { get; set; }
         public string ChangeListPath { get; set; }
-
-                             //ignore subdirectories starting with . (.git, .svn, ...)
-        public Settings(bool setDefaultIgnore = false)
-        {
-            IgnorePatterns = new IgnorePatterns(setDefaultIgnore);
-        }
 
         public static Settings Load(string path)
         {
@@ -94,12 +88,13 @@ namespace BFUlib
             {
                 string file = Path.GetFullPath(path);
 
-                var settingsEx = new Settings(true)
+                var settingsEx = new Settings
                 {
                     LocalPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Development"),
                     LogPath = Path.ChangeExtension(file, ".log"),
                     ChangeListPath = Path.ChangeExtension(file, ".lst")
                 };
+                settingsEx.IgnorePatterns.AddDefaultPatterns();
 
                 settingsEx.TargetList.Add(new Location
                 {

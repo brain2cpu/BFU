@@ -16,7 +16,7 @@ namespace BFUlib
         public IgnorePatternType PatternType { get; set; } = IgnorePatternType.Directory;
         public Regex Regex { get; set; }
 
-        public static IgnorePattern DefaultDirectoryIgnorePattern => new IgnorePattern {Regex = new Regex(@"[/\\]\.\w+[/\\]")};
+        public static IgnorePattern DefaultDirectoryIgnorePattern => new IgnorePattern {Regex = new Regex(@"[/\\]\.")};
 
         public static IgnorePattern DefaultFileIgnorePattern => new IgnorePattern
             {PatternType = IgnorePatternType.File, Regex = new Regex(@"^\.")};
@@ -26,13 +26,10 @@ namespace BFUlib
     {
         public List<IgnorePattern> Patterns { get; } = new List<IgnorePattern>();
 
-        public IgnorePatterns(bool addDefault = false)
+        public void AddDefaultPatterns()
         {
-            if(addDefault)
-            {
-                Patterns.Add(IgnorePattern.DefaultDirectoryIgnorePattern);
-                Patterns.Add(IgnorePattern.DefaultFileIgnorePattern);
-            }
+            Patterns.Add(IgnorePattern.DefaultDirectoryIgnorePattern);
+            Patterns.Add(IgnorePattern.DefaultFileIgnorePattern);
         }
 
         public bool ShouldIgnore(string path)

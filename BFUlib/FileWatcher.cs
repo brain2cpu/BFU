@@ -32,7 +32,10 @@ namespace BFUlib
             _watcher.Changed += _watcher_Changed;
             _watcher.Created += _watcher_Created;
             _watcher.Deleted += _watcher_Deleted;
+            _watcher.Renamed += _watcher_Renamed;
         }
+
+        void _watcher_Renamed(object sender, RenamedEventArgs e) => HandleNewFile(e.FullPath);
 
         private void _watcher_Changed(object sender, FileSystemEventArgs e)
         {
@@ -45,24 +48,26 @@ namespace BFUlib
             Queue.Enqueue(new FileOperation { Path = e.FullPath, Operation = Operation.Change });
         }
 
-        private void _watcher_Created(object sender, FileSystemEventArgs e)
+        private void _watcher_Created(object sender, FileSystemEventArgs e) => HandleNewFile(e.FullPath);
+
+        private void HandleNewFile(string path)
         {
-            if(!string.IsNullOrEmpty(ExitRequestFile) &&
-               SameDirectory(Path.GetDirectoryName(e.FullPath), _directory, true) &&
-               SameFilename(Path.GetFileName(e.FullPath), ExitRequestFile, true))
+            if (!string.IsNullOrEmpty(ExitRequestFile) &&
+                           SameDirectory(Path.GetDirectoryName(path), _directory, true) &&
+                           SameFilename(Path.GetFileName(path), ExitRequestFile, true))
             {
-                File.Delete(e.FullPath);
+                File.Delete(path);
                 ExitRequested?.Invoke();
                 return;
             }
 
-            if(Ignore(e.FullPath))
+            if (Ignore(path))
                 return;
 
-            if(Queue.Any(x => string.Equals(x.Path, e.FullPath) && (x.Operation == Operation.Add || x.Operation == Operation.Change)))
+            if (Queue.Any(x => string.Equals(x.Path, path) && (x.Operation == Operation.Add || x.Operation == Operation.Change)))
                 return;
 
-            Queue.Enqueue(new FileOperation { Path = e.FullPath, Operation = Operation.Add });
+            Queue.Enqueue(new FileOperation { Path = path, Operation = Operation.Add });
         }
 
         private void _watcher_Deleted(object sender, FileSystemEventArgs e)

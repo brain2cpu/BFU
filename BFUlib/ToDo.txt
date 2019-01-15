@@ -1,0 +1,6 @@
+﻿- add name to location
+- timestamped backup to be saved only if differs from the previous one (in case of any other failes)
+- create a backup-task list (one such task for every file and every location), and keep track of operations in this
+   way (if done first the fix above is not needed anymore)
+- the error must specify location details
+- add option to execute delete operations as well

@@ -34,7 +34,7 @@ namespace BFUlib
             }
             catch(Exception xcp)
             {
-                throw new Exception($"Connection failed {_location.Method} {_location.Host}:{_location.Port}{Environment.NewLine}{xcp.Message}", xcp);
+                throw new Exception($"Connection failed {_location.Name}{Environment.NewLine}{xcp.Message}", xcp);
             }
         }
 
@@ -69,7 +69,14 @@ namespace BFUlib
                 Connect();
             }
 
-            DoUpload(path, targetPath);
+            try
+            {
+                DoUpload(path, targetPath);
+            }
+            catch(Exception xcp)
+            {
+                throw new BFUException(_location, xcp);
+            }
         }
 
         public async Task UploadAsync(string path, string targetPath)
@@ -251,14 +258,18 @@ namespace BFUlib
         {
             ReconnectCmdIfNeeded();
 
-            _cmdClient.RunCommand($"mkdir -p {dir}");
+            //the sudo version needs the following line added to /etc/sudoers with visudo
+            //MYUSER   ALL = NOPASSWD: /bin/mkdir
+            _cmdClient.RunCommand(_location.UseSudoInCmds ? "sudo " : "" + $"mkdir -p {dir}");
         }
 
         private void ChangeRights(string path)
         {
             ReconnectCmdIfNeeded();
 
-            _cmdClient.RunCommand($"chmod a+rw {path}");
+            //the sudo version needs the following line added to /etc/sudoers with visudo
+            //MYUSER   ALL = NOPASSWD: /bin/chmod
+            _cmdClient.RunCommand(_location.UseSudoInCmds ? "sudo " : "" + $"chmod a+rw {path}");
         }
 
         private void ReconnectCmdIfNeeded()

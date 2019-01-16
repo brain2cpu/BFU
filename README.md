@@ -1,10 +1,17 @@
 # BFU - Background File Uploader
 
-BFU is a [.NET Core](https://dotnet.microsoft.com/download) 2.1 project created out of the need of combining local code editing with the necessity of immediate deployment of the changes to some remote locations and the convenience of local (optional incremental) copies. Being a Core application it is command line based and configured with a json file (there are plans for a Windows GUI version however) but compatible with almost all operating systems (see the link above). BFU currently supports SCP and FTP.
+BFU is a [.NET Core](https://dotnet.microsoft.com/download) 2.1 project created out of the need of combining local 
+code editing with the necessity of immediate deployment of the changes to some remote locations and the convenience 
+of local (optional incremental) copies. Being a Core application it is command line based and configured with a 
+json file (there are plans for a Windows GUI version however) but compatible with almost all operating systems 
+(see the link above). BFU currently supports SCP and FTP.
 
 ## Requirements
 
-If your developer machine doesn't already support .NET core you must download and install the corresponding version from the link above. Windows 10 should have all you need in this respect so all my examples will go with Mac (64bit), so you should go now with [Download .NET Core SDK](https://dotnet.microsoft.com/download/thank-you/dotnet-sdk-2.2.101-macos-x64-installer). 
+If your developer machine doesn't already support .NET core you must download and install the corresponding 
+version from the link above. Windows 10 should have all you need in this respect so all my examples will go 
+with Mac (64bit), so you should go now with 
+[Download .NET Core SDK](https://dotnet.microsoft.com/download/thank-you/dotnet-sdk-2.2.101-macos-x64-installer). 
 
 ## First steps
 
@@ -13,8 +20,9 @@ If your developer machine doesn't already support .NET core you must download an
  - `dotnet build -c Release`
  - `dotnet BFU/bin/Release/netcoreapp2.1/BFU.dll`
 
-Now you have the binary version of the application, you can move it or create some symbolic links for easier use.
-Executing BFU without arguments will generate an example configuration file in the current directory (as stated in the output too) and exit the program. This json file will be explained below.
+Now you have the binary version of the application, you can move it or create some symbolic links for easier use.  
+Executing BFU without arguments will generate an example configuration file in the current directory 
+(as stated in the output too) and exit the program. This json file will be explained below.
 
 ## The configuration file
 
@@ -28,13 +36,15 @@ To cover various folder structures this example is from a Windows development ma
   "AllowMultiThreadedUpload": true,
   "TargetList": [
     {
+	  "Name": "my SCP server",
       "Method": "Scp",
       "Username": "devel",
       "Password": "devel-pass",
       "Host": "ssh.server.com",
       "Port": 22,
       "TargetPath": "/usr/local/sf/",
-      "CreateTimestampedCopies": false
+      "CreateTimestampedCopies": false,
+	  "UseSudoInCmds": 1
     },
     {
       "Method": "Ftp",
@@ -55,7 +65,7 @@ To cover various folder structures this example is from a Windows development ma
       {
         "PatternType": "Directory",
         "Regex": {
-          "Pattern": "[/\\\\]\\.\\w+[/\\\\]",
+          "Pattern": "[/\\\\]\\.",
           "Options": 0
         }
       },
@@ -63,6 +73,13 @@ To cover various folder structures this example is from a Windows development ma
         "PatternType": "File",
         "Regex": {
           "Pattern": "^\\.",
+          "Options": 0
+        }
+      },
+      {
+        "PatternType": "File",
+        "Regex": {
+          "Pattern": "___jb_\\w{3}___",
           "Options": 0
         }
       }
@@ -76,22 +93,33 @@ To cover various folder structures this example is from a Windows development ma
 
 #### AllowMultiThreadedUpload
 
-BFU allows multiple simultaneous targets, this key states whether the SCP and/or FTP transfers should go in the same time or one by one.
+BFU allows multiple simultaneous targets, this key states whether the SCP and/or FTP transfers should go 
+in the same time or one by one.
 
 #### TargetList
-This is the most important part of the configuration file, must contain at least one target. Every  target location is defined here by the following keys:
+This is the most important part of the configuration file, must contain at least one target. 
+Every target location is defined here by the following keys:
+
+- Name: an optional name given to the given target
 - Method: one of `Scp`, `Ftp` or `Copy`
 - Username, Password, Host and Port are obvious informations needed by SCP or FTP connections (default ports can be skipped)
 - TargetPath: the root location of the common directory structure
-- CreateTimestampedCopies: if false the file will be copied and overwritten on the target location, if true every copy will have the current time appended to the filename (ex. index.html_20181227154937)
+- CreateTimestampedCopies: if false the file will be copied and overwritten on the target location, 
+if true every copy will have the current time appended to the filename (ex. index.html_20181227154937)
+- UseSudoInCmds: valid just for Scp connections, default false, if set to true will execute mkdir and chmod commands with sudo: 
+(ex. `sudo chmod a+rw xxx`), for this to work sudo must be enabled and configured on the target machine (ex on Linux must add with 
+`visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir` and `myuser ALL = NOPASSWD: /bin/chmod`)
 
 #### IgnorePatterns
 
-This is a list of regular expressions defining file patterns to be ignored. The list can be empty, the default from our example will ignore any subdirectory or file with a name starting with a dot (ex. .git)
+This is a list of regular expressions defining file patterns to be ignored. 
+The list can be empty, the default from our example will ignore any subdirectory or file with a name starting with a dot (ex. .git).
+The last pattern is useful if you are using IntelliJ IDEA.
 
 #### LocalPath
 
-This mandatory item represents the root of the local directory structure. All files created or modified in this folder and all its subfolders will be uploaded (taking the ignore patterns in consideration).
+This mandatory item represents the root of the local directory structure. 
+All files created or modified in this folder and all its subfolders will be uploaded (taking the ignore patterns in consideration).
 
 #### LogPath
 
@@ -99,7 +127,8 @@ All operations will be logged in this file.
 
 #### ChangeListPath
 
-This optional file will contain a list of all uploaded files. Every file appears only once, and the only way to reset the list is to delete or empty it manually.
+This optional file will contain a list of all uploaded files. Every file appears only once, 
+and the only way to reset the list is to delete or empty it manually.
 
 ## Usage
 

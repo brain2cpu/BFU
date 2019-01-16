@@ -15,6 +15,13 @@ namespace BFUlib
         [JsonConverter(typeof(StringEnumConverter))]
         public CopyMethod Method { get; set; } = CopyMethod.Copy;
 
+        private string _name;
+        public string Name
+        {
+            get => string.IsNullOrEmpty(_name) ? $"{Method} {Host}:{Port}" : _name;
+            set => _name = value;
+        }
+
         public string Username { get; set; }
         public string Password { get; set; }
 
@@ -29,6 +36,9 @@ namespace BFUlib
         }
 
         public bool CreateTimestampedCopies { get; set; } = false;
+
+        //valid only if Method == Scp 
+        public bool UseSudoInCmds { get; set; } = false;
 
         private Guid? _id = null;
         public Guid Id
@@ -98,12 +108,14 @@ namespace BFUlib
 
                 settingsEx.TargetList.Add(new Location
                 {
+                    Name = "My SCP host",
                     Method = CopyMethod.Scp,
                     Host = "ssh.server.com",
                     Port = DefaultScpPort,
                     Username = "devel",
                     Password = "devel-pass",
-                    TargetPath = "/usr/local/sf/"
+                    TargetPath = "/usr/local/sf/",
+                    UseSudoInCmds = true
                 });
 
                 settingsEx.TargetList.Add(new Location
@@ -118,6 +130,7 @@ namespace BFUlib
 
                 settingsEx.TargetList.Add(new Location
                 {
+                    Name = "Local timestamped copy",
                     Method = CopyMethod.Copy,
                     TargetPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Backup"),
                     CreateTimestampedCopies = true

@@ -36,7 +36,7 @@ To cover various folder structures this example is from a Windows development ma
   "AllowMultiThreadedUpload": true,
   "TargetList": [
     {
-	  "Name": "my SCP server",
+      "Name": "my SCP server",
       "Method": "Scp",
       "Username": "devel",
       "Password": "devel-pass",
@@ -44,7 +44,7 @@ To cover various folder structures this example is from a Windows development ma
       "Port": 22,
       "TargetPath": "/usr/local/sf/",
       "CreateTimestampedCopies": false,
-	  "UseSudoInCmds": 1
+      "UseSudoInCmds": 1
     },
     {
       "Method": "Ftp",
@@ -100,15 +100,15 @@ in the same time or one by one.
 This is the most important part of the configuration file, must contain at least one target. 
 Every target location is defined here by the following keys:
 
-- Name: an optional name given to the given target
+- Name: an optional name given to the target
 - Method: one of `Scp`, `Ftp` or `Copy`
 - Username, Password, Host and Port are obvious informations needed by SCP or FTP connections (default ports can be skipped)
 - TargetPath: the root location of the common directory structure
 - CreateTimestampedCopies: if false the file will be copied and overwritten on the target location, 
 if true every copy will have the current time appended to the filename (ex. index.html_20181227154937)
-- UseSudoInCmds: valid just for Scp connections, default false, if set to true will execute mkdir and chmod commands with sudo: 
+- UseSudoInCmds: valid just for Scp connections, default false, if set to true will execute `mkdir` and `chmod` commands with sudo 
 (ex. `sudo chmod a+rw xxx`), for this to work sudo must be enabled and configured on the target machine (ex on Linux must add with 
-`visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir` and `myuser ALL = NOPASSWD: /bin/chmod`)
+`visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir` and `myuser ALL = NOPASSWD: /bin/chmod`).
 
 #### IgnorePatterns
 

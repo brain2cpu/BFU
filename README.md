@@ -108,7 +108,8 @@ Every target location is defined here by the following keys:
 if true every copy will have the current time appended to the filename (ex. index.html_20181227154937)
 - UseSudoInCmds: valid just for Scp connections, default false, if set to true will execute `mkdir` and `chmod` commands with sudo 
 (ex. `sudo chmod a+rw xxx`), for this to work sudo must be enabled and configured on the target machine (ex on Linux must add with 
-`visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir` and `myuser ALL = NOPASSWD: /bin/chmod`).
+`visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir`, `myuser ALL = NOPASSWD: /bin/touch` and 
+`myuser ALL = NOPASSWD: /bin/chmod`).
 
 #### IgnorePatterns
 

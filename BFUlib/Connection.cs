@@ -133,6 +133,14 @@ namespace BFUlib
 
             if(!Directory.Exists(dir))
                 Directory.CreateDirectory(dir);
+
+            if(File.Exists(targetPath))
+            {
+                var fi = new FileInfo(targetPath);
+                if (fi.IsReadOnly)
+                    fi.Attributes = fi.Attributes & ~FileAttributes.ReadOnly;
+            }
+
             File.Copy(path, targetPath, true);
         }
     }
@@ -260,16 +268,18 @@ namespace BFUlib
 
             //the sudo version needs the following line added to /etc/sudoers with visudo
             //MYUSER   ALL = NOPASSWD: /bin/mkdir
-            _cmdClient.RunCommand(_location.UseSudoInCmds ? "sudo " : "" + $"mkdir -p {dir}");
+            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"mkdir -p {dir}");
         }
 
         private void ChangeRights(string path)
         {
             ReconnectCmdIfNeeded();
 
-            //the sudo version needs the following line added to /etc/sudoers with visudo
+            //the sudo version needs the following lines added to /etc/sudoers with visudo
+            //MYUSER   ALL = NOPASSWD: /bin/touch
             //MYUSER   ALL = NOPASSWD: /bin/chmod
-            _cmdClient.RunCommand(_location.UseSudoInCmds ? "sudo " : "" + $"chmod a+rw {path}");
+            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"touch {path}");
+            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"chmod a+rw {path}");
         }
 
         private void ReconnectCmdIfNeeded()

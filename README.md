@@ -2,15 +2,32 @@
 
 BFU is a [.NET Core](https://dotnet.microsoft.com/download) 2.1 project created out of the need of combining local 
 code editing with the necessity of immediate deployment of the changes to some remote locations and the convenience 
-of local (optional incremental) copies. Being a Core application it is command line based and configured with a 
-json file (there are plans for a Windows GUI version however) but compatible with almost all operating systems 
+of local (optional incremental) copies. Being a Core application it is command line based and it is configured with
+a json file (there are plans for a Windows GUI version however), but compatible with almost all operating systems 
 (see the link above). BFU currently supports SCP and FTP.
+
+##Features
+
+ - Detects file changes (creation, update) in a selected local folder.
+ - Uploads changed files to any number of remote SCP or FTP servers.
+ - Copies changed files to specified folders on local or mounted drives.
+ - Every file operation can be executed in a separate thread.
+ - All operations can be logged.
+ - Can keep a list of changed files.
+ - Remote connections can:
+    - reconnect if needed,
+    - create missing directories (on multiple levels if required).
+ - For SCP connections only it permits:
+    - overwriting a readonly file,
+    - creating a file in a readonly directory,
+    - using sudo for the commands above (if the remote system is correctly configured),
+    - executing custom commands after every upload. 
 
 ## Requirements
 
 If your developer machine doesn't already support .NET core you must download and install the corresponding 
 version from the link above. Windows 10 should have all you need in this respect so all my examples will go 
-with Mac (64bit), so you should go now with 
+with Mac (64bit), so you should now go with 
 [Download .NET Core SDK](https://dotnet.microsoft.com/download/thank-you/dotnet-sdk-2.2.101-macos-x64-installer). 
 
 ## First steps
@@ -43,8 +60,16 @@ To cover various folder structures this example is from a Windows development ma
       "Host": "ssh.server.com",
       "Port": 22,
       "TargetPath": "/usr/local/sf/",
-      "CreateTimestampedCopies": false,
-      "UseSudoInCmds": 1
+      "UseSudoInCmds": 1,
+      "Commands": [
+              {
+                "Cmd": "chmod a+x {0}",
+                "MatchingFile": { "Pattern": "\\.(pl|cgi|sh)$" }
+              },
+              {
+                "Cmd": "sudo /etc/init.d/apache graceful"
+              }
+            ]
     },
     {
       "Method": "Ftp",
@@ -57,7 +82,7 @@ To cover various folder structures this example is from a Windows development ma
     {
       "Method": "Copy",
       "TargetPath": "C:\\Users\\me\\Documents\\Backup\\",
-      "CreateTimestampedCopies": true,
+      "CreateTimestampedCopies": true
     }
   ],
   "IgnorePatterns": {
@@ -110,6 +135,9 @@ if true every copy will have the current time appended to the filename (ex. inde
 (ex. `sudo chmod a+rw xxx`), for this to work sudo must be enabled and configured on the target machine (ex on Linux must add with 
 `visudo` the following lines `myuser ALL = NOPASSWD: /bin/mkdir`, `myuser ALL = NOPASSWD: /bin/touch` and 
 `myuser ALL = NOPASSWD: /bin/chmod`).
+- Commands: list of Cmd - the command to be executed after the upload, the placeholder for the actual file is {0} and an 
+optional MatchingFile - a regular expression pattern to limit the execution of the command to the matched files only. 
+You can use sudo in these commands too, but do not forget to configure your sudoers file. 
 
 #### IgnorePatterns
 
@@ -133,7 +161,7 @@ and the only way to reset the list is to delete or empty it manually.
 
 ## Usage
 
-After your specific configuration file (ex. my.json) is ready you should start BFU:
+After your specific configuration file (ex. my.json) is ready, you should start BFU:
 
 `dotnet BFU/bin/Release/netcoreapp2.1/BFU.dll my.json`
 

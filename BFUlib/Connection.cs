@@ -260,6 +260,24 @@ namespace BFUlib
                 else
                     throw;
             }
+
+            try
+            {
+                ReconnectCmdIfNeeded();
+                foreach(var cmd in _location.Commands)
+                {
+                    if(cmd.MatchingFile != null && !cmd.MatchingFile.IsMatch(targetPath))
+                        continue;
+
+                    string cmdStr = string.Format(cmd.Cmd, targetPath);
+                    var r = _cmdClient.RunCommand(cmdStr);
+                    Console.WriteLine($"{cmdStr}: {r.ExitStatus} {r.Result}");
+                }
+            }
+            catch(Exception xcp)
+            {
+                Console.WriteLine(xcp.Message);
+            }
         }
 
         private void CreateDirectory(string dir)

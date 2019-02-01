@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using static BFUlib.PortablePath;
@@ -9,6 +10,12 @@ using static BFUlib.PortablePath;
 namespace BFUlib
 {
     public enum CopyMethod { Copy, Ftp, Scp }
+
+    public class CommandAfterUpload
+    {
+        public string Cmd { get; set; }
+        public Regex MatchingFile { get; set; } = null;
+    }
 
     public class Location
     {
@@ -53,6 +60,8 @@ namespace BFUlib
             }
             set => _id = value;
         }
+
+        public List<CommandAfterUpload> Commands { get; } = new List<CommandAfterUpload>();
     }
 
     public class Settings
@@ -106,7 +115,7 @@ namespace BFUlib
                 };
                 settingsEx.IgnorePatterns.AddDefaultPatterns();
 
-                settingsEx.TargetList.Add(new Location
+                Location loc1 = new Location
                 {
                     Name = "My SCP host",
                     Method = CopyMethod.Scp,
@@ -116,7 +125,17 @@ namespace BFUlib
                     Password = "devel-pass",
                     TargetPath = "/usr/local/sf/",
                     UseSudoInCmds = true
+                };
+                loc1.Commands.Add(new CommandAfterUpload
+                {
+                    Cmd = "chmod a+x {0}",
+                    MatchingFile = new Regex(@"\.(pl|cgi)$")
                 });
+                loc1.Commands.Add(new CommandAfterUpload
+                {
+                    Cmd = "sudo /etc/init.d/apache restart"
+                });
+                settingsEx.TargetList.Add(loc1);
 
                 settingsEx.TargetList.Add(new Location
                 {

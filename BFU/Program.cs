@@ -42,7 +42,9 @@ namespace BFU
             try
             {
                 await fileHandler.ConnectAllAsync();
+                Console.WriteLine("Connected.");
                 fileWatcher.Start();
+                Console.WriteLine($"Ready.{Environment.NewLine}");
 
                 await Process(log, changes, fileHandler, fileWatcher);
                 return 0;
@@ -50,6 +52,7 @@ namespace BFU
             catch(Exception xcp)
             {
                 log.Write(xcp.Message);
+                Console.WriteLine($"Fatal error: {xcp.Message}");
                 return 9;
             }
             finally

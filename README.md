@@ -6,7 +6,7 @@ of local (optional incremental) copies. Being a Core application it is command l
 a json file (there are plans for a Windows GUI version however), but compatible with almost all operating systems 
 (see the link above). BFU currently supports SCP and FTP.
 
-##Features
+## Features
 
  - Detects file changes (creation, update) in a selected local folder.
  - Uploads changed files to any number of remote SCP or FTP servers.

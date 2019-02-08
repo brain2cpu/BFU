@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentFTP;
 using Renci.SshNet;
@@ -26,7 +27,7 @@ namespace BFUlib
         public void Connect()
         {
             if(_location == null)
-                throw new InvalidOperationException($"{nameof(Connect)} must be called first");
+                throw new NullReferenceException("location can not be null");
 
             try
             {
@@ -34,7 +35,7 @@ namespace BFUlib
             }
             catch(Exception xcp)
             {
-                throw new Exception($"Connection failed {_location.Name}{Environment.NewLine}{xcp.Message}", xcp);
+                throw new BFUException($"Connection failed {_location.Name}{Environment.NewLine}{xcp.Message}", xcp);
             }
         }
 
@@ -233,7 +234,10 @@ namespace BFUlib
                     UploadAndIgnoreSetTime(path, targetPath);
                 }
                 else
+                {
+                    Debug.WriteLine(xcp.Message);
                     throw;
+                }
             }
             catch(Exception e)
             {
@@ -261,22 +265,25 @@ namespace BFUlib
                     throw;
             }
 
-            try
+            if(_location.Commands.Any())
             {
-                ReconnectCmdIfNeeded();
-                foreach(var cmd in _location.Commands)
+                try
                 {
-                    if(cmd.MatchingFile != null && !cmd.MatchingFile.IsMatch(targetPath))
-                        continue;
+                    ReconnectCmdIfNeeded();
+                    foreach(var cmd in _location.Commands)
+                    {
+                        if(cmd.MatchingFile != null && !cmd.MatchingFile.IsMatch(targetPath))
+                            continue;
 
-                    string cmdStr = string.Format(cmd.Cmd, targetPath);
-                    var r = _cmdClient.RunCommand(cmdStr);
-                    Console.WriteLine($"{cmdStr}: {r.ExitStatus} {r.Result}");
+                        string cmdStr = string.Format(cmd.Cmd, targetPath);
+                        var r = _cmdClient.RunCommand(cmdStr);
+                        Console.WriteLine($"{cmdStr}: {r.ExitStatus} {r.Result}");
+                    }
                 }
-            }
-            catch(Exception xcp)
-            {
-                Console.WriteLine(xcp.Message);
+                catch(Exception xcp)
+                {
+                    Console.WriteLine(xcp.Message);
+                }
             }
         }
 

@@ -5,13 +5,12 @@ namespace BFUlib
 {
     public enum MessageType { Info, Warning, Error }
 
-    public enum CommandStatus { Pending, Success, Failed }
+    public enum CommandStatus { Pending, Running, Success, Failed }
 
     public class Message
     {
         public MessageType Type { get; set; }
-        public string Request { get; set; }
-        public string Response { get; set; }
+        public string Content { get; set; }
     }
 
     public class BfuTask
@@ -20,19 +19,32 @@ namespace BFUlib
 
         public List<Message> Messages { get; } = new List<Message>();
 
-        private readonly Location _location;
-
+        private readonly IConnection _connection;
         private readonly string _path;
+        private readonly string _targetPath;
 
-        public BfuTask(Location location, string path)
+        public BfuTask(IConnection remote, string path, string targetPath)
         {
-            _location = location;
+            _connection = remote;
             _path = path;
+            _targetPath = targetPath;
         }
 
-        public void Execute()
+        public void Start()
         {
+            Status = CommandStatus.Running;
+            Messages.Clear();
 
+            try
+            {
+                _connection.Upload(_path, _targetPath);
+                Status = CommandStatus.Success;
+            }
+            catch(Exception xcp)
+            {
+                Messages.Add(new Message { Type = MessageType.Error, Content = xcp.Message });
+                Status = CommandStatus.Failed;
+            }
         }
     }
 }

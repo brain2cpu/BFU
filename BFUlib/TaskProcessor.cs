@@ -8,10 +8,22 @@ namespace BFUlib
 {
     public class TaskProcessor
     {
+        struct Remote
+        {
+            public Location Location { get; }
+            public IConnection Connection { get; }
+
+            public Remote(Location loc, IConnection con)
+            {
+                Location = loc;
+                Connection = con;
+            }
+        }
+
         private readonly Settings _settings;
 
         private readonly FileWatcher _fileWatcher;
-        private readonly Dictionary<Guid, IConnection> _targetList = new Dictionary<Guid, IConnection>();
+        private readonly List<Remote> _targetList = new List<Remote>();
 
         public ChangeList Changes { get; }
 
@@ -29,7 +41,7 @@ namespace BFUlib
 
             foreach(var location in _settings.TargetList)
             {
-                _targetList.Add(location.Id, Connection.Create(location));
+                _targetList.Add(new Remote(location, Connection.Create(location)));
             }
 
             Changes = string.IsNullOrEmpty(settings.ChangeListPath) ? null : new ChangeList(settings.ChangeListPath);
@@ -41,10 +53,10 @@ namespace BFUlib
         public async Task StartAsync()
         {
             if(_settings.AllowMultiThreadedUpload)
-                await Task.WhenAll(_targetList.Values.Select(x => x.ConnectAsync()));
+                await Task.WhenAll(_targetList.Select(x => x.Connection.ConnectAsync()));
             else
             {
-                foreach(var connection in _targetList.Values)
+                foreach(var connection in _targetList.Select(x => x.Connection))
                 {
                     connection.Connect();
                 }
@@ -57,10 +69,20 @@ namespace BFUlib
         {
             _fileWatcher.Stop();
 
-            foreach(var connection in _targetList.Values)
+            foreach(var connection in _targetList.Select(x => x.Connection))
             {
                 connection.Disconnect();
             }
+        }
+
+        private string PrepareTargetPath(string path, Location location)
+        {
+            var tp = PortablePath.GenerateRemotePath(path, _settings.LocalPath, location.TargetPath);
+
+            if (location.CreateTimestampedCopies)
+                tp = $"{tp}_{DateTime.Now:yyyyMMddHHmmss}";
+
+            return tp;
         }
 
         public async Task ProcessAsync()
@@ -76,6 +98,13 @@ namespace BFUlib
                     {
                         case Operation.Add:
                         case Operation.Change:
+                            foreach(var r in _targetList)
+                            {
+                                var bt = new BfuTask(r.Connection, fileOperation.Path, PrepareTargetPath(fileOperation.Path, r.Location));
+                                bt.Start();
+                                Queue.Enqueue(bt);
+                            }
+
                             if(await fileHandler.UploadAsync(fileOperation.Path))
                             {
                                 _fileWatcher.Queue.TryDequeue(out fileOperation);
@@ -84,18 +113,18 @@ namespace BFUlib
                             }
                             else
                             {
-                                Log($"Upload failed {fileOperation.Path}{Environment.NewLine}{fileHandler.LastUploadErrors}");
+                                //Log($"Upload failed {fileOperation.Path}{Environment.NewLine}{fileHandler.LastUploadErrors}");
                                 await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(1));
                             }
                             break;
 
                         case Operation.Delete:
-                            fileWatcher.Queue.TryDequeue(out fileOperation);
-                            Log($"Local delete of: {fileOperation.Path}");
+                            _fileWatcher.Queue.TryDequeue(out fileOperation);
+                            //Log($"Local delete of: {fileOperation.Path}");
                             break;
 
                         default:
-                            Log($"ERROR: {fileOperation.Operation} not implemented");
+                            //Log($"ERROR: {fileOperation.Operation} not implemented");
                             break;
                     }
                 }

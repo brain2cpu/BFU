@@ -22,12 +22,28 @@ namespace BFUlib
         private readonly IConnection _connection;
         private readonly string _path;
         private readonly string _targetPath;
+        private readonly Action<BfuTask> _onEnd;
 
-        public BfuTask(IConnection remote, string path, string targetPath)
+        public Guid Guid { get; }
+
+        public BfuTask(IConnection remote, string path, string targetPath, Action<BfuTask> onEnd)
         {
             _connection = remote;
             _path = path;
             _targetPath = targetPath;
+            _onEnd = onEnd;
+
+            Guid = Guid.NewGuid();
+        }
+
+        public BfuTask(BfuTask task)
+        {
+            _connection = task._connection;
+            _path = task._path;
+            _targetPath = task._targetPath;
+            _onEnd = task._onEnd;
+
+            Guid = Guid.NewGuid();
         }
 
         public void Start()
@@ -45,6 +61,8 @@ namespace BFUlib
                 Messages.Add(new Message { Type = MessageType.Error, Content = xcp.Message });
                 Status = CommandStatus.Failed;
             }
+
+            _onEnd.Invoke(this);
         }
     }
 }

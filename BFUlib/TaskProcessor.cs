@@ -28,9 +28,9 @@ namespace BFUlib
         public ChangeList Changes { get; }
 
         //TODO: probably should be just a private field
-        public ConcurrentQueue<BfuTask> Queue { get; } = new ConcurrentQueue<BfuTask>();
+        private readonly ConcurrentDictionary<Guid, BfuTask> _queue = new ConcurrentDictionary<Guid, BfuTask>();
 
-        public event Func<BfuTask> BfuTaskProcessed;
+        public event Action<BfuTask> BfuTaskProcessed;
 
         public TaskProcessor(Settings settings)
         {
@@ -92,7 +92,7 @@ namespace BFUlib
 
             while(!exit)
             {
-                if(_fileWatcher.Queue.TryPeek(out var fileOperation))
+                if(_fileWatcher.Queue.TryDequeue(out var fileOperation))
                 {
                     switch(fileOperation.Operation)
                     {
@@ -100,26 +100,17 @@ namespace BFUlib
                         case Operation.Change:
                             foreach(var r in _targetList)
                             {
-                                var bt = new BfuTask(r.Connection, fileOperation.Path, PrepareTargetPath(fileOperation.Path, r.Location));
+                                var bt = new BfuTask(r.Connection, 
+                                                     fileOperation.Path, 
+                                                     PrepareTargetPath(fileOperation.Path, r.Location),
+                                                     TaskFinished);
                                 bt.Start();
-                                Queue.Enqueue(bt);
+                                _queue.TryAdd(bt.Guid, bt);   //it's a new GUID, should always work
                             }
 
-                            if(await fileHandler.UploadAsync(fileOperation.Path))
-                            {
-                                _fileWatcher.Queue.TryDequeue(out fileOperation);
-
-                                Changes?.Add(fileOperation.Path);
-                            }
-                            else
-                            {
-                                //Log($"Upload failed {fileOperation.Path}{Environment.NewLine}{fileHandler.LastUploadErrors}");
-                                await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(1));
-                            }
                             break;
 
                         case Operation.Delete:
-                            _fileWatcher.Queue.TryDequeue(out fileOperation);
                             //Log($"Local delete of: {fileOperation.Path}");
                             break;
 
@@ -127,11 +118,33 @@ namespace BFUlib
                             //Log($"ERROR: {fileOperation.Operation} not implemented");
                             break;
                     }
-                }
-                else
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-            }
 
+                    continue;
+                }
+
+                var reTask = _queue.FirstOrDefault(x => x.Value.Status == CommandStatus.Pending).Value;
+                if(reTask != null)
+                {
+                    reTask.Start();
+                    continue;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1));
+            }
+        }
+
+        private void TaskFinished(BfuTask task)
+        {
+            if(!_queue.TryRemove(task.Guid, out BfuTask tmp))
+                Task.Delay(TimeSpan.FromMilliseconds(100));
+
+            BfuTaskProcessed?.Invoke(task);
+
+            if(task.Status == CommandStatus.Failed)
+            {
+                var newTask = new BfuTask(task);
+                _queue.TryAdd(newTask.Guid, newTask);
+            }
         }
     }
 }

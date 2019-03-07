@@ -11,11 +11,11 @@ namespace BFUlib
 {
     public interface IConnection : IDisposable
     {
-        void Connect();
-        Task ConnectAsync();
-        void Disconnect();
-        void Upload(string path, string targetPath);
-        Task UploadAsync(string path, string targetPath);
+        MessageList Connect();
+        Task<MessageList> ConnectAsync();
+        MessageList Disconnect();
+        MessageList Upload(string path, string targetPath);
+        Task<MessageList> UploadAsync(string path, string targetPath);
     }
 
     abstract class Connection : IConnection
@@ -24,7 +24,7 @@ namespace BFUlib
 
         protected Connection(Location location) => _location = location;
 
-        public void Connect()
+        public MessageList Connect()
         {
             if(_location == null)
                 throw new NullReferenceException("location can not be null");
@@ -32,29 +32,31 @@ namespace BFUlib
             try
             {
                 DoConnect();
+                return Message.Info($"Connected to {_location.Name}");
             }
             catch(Exception xcp)
             {
-                throw new BFUException($"Connection failed {_location.Name}{Environment.NewLine}{xcp.Message}", xcp);
+                return Message.Error($"Connection to {_location.Name} failed", xcp);
             }
         }
 
-        public async Task ConnectAsync()
+        public async Task<MessageList> ConnectAsync()
         {
-            await Task.Run(() => Connect());
+            return await Task.Run(() => Connect());
         }
 
         protected abstract void DoConnect();
 
-        public void Disconnect()
+        public MessageList Disconnect()
         {
             try
             {
                 DoDisconnect();
+                return Message.Info($"Disconnected from {_location.Name}");
             }
             catch(Exception xcp)
             {
-                Debug.WriteLine(xcp.Message);
+                return Message.Error($"Error disconnecting from {_location.Name}", xcp);
             }
         }
 
@@ -62,30 +64,33 @@ namespace BFUlib
 
         protected abstract bool IsConnected();
 
-        public void Upload(string path, string targetPath)
+        public MessageList Upload(string path, string targetPath)
         {
             if(!IsConnected())
             {
                 Disconnect();
-                Connect();
+
+                var msg = Connect();
+                if(!msg.IsSuccess)
+                    return msg;
             }
 
             try
             {
-                DoUpload(path, targetPath);
+                return DoUpload(path, targetPath);
             }
             catch(Exception xcp)
             {
-                throw new BFUException(_location, xcp);
+                return Message.Error($"Error uploading {path} to {_location.Name}:{targetPath}", xcp);
             }
         }
 
-        public async Task UploadAsync(string path, string targetPath)
+        public async Task<MessageList> UploadAsync(string path, string targetPath)
         {
-            await Task.Run(() => Upload(path, targetPath));
+            return await Task.Run(() => Upload(path, targetPath));
         }
 
-        protected abstract void DoUpload(string path, string targetPath);
+        protected abstract MessageList DoUpload(string path, string targetPath);
 
         public void Dispose() => Disconnect();
 
@@ -126,7 +131,7 @@ namespace BFUlib
 
         protected override bool IsConnected() => true;
 
-        protected override void DoUpload(string path, string targetPath)
+        protected override MessageList DoUpload(string path, string targetPath)
         {
             string dir = Path.GetDirectoryName(targetPath);
             if(string.IsNullOrEmpty(dir))
@@ -138,11 +143,13 @@ namespace BFUlib
             if(File.Exists(targetPath))
             {
                 var fi = new FileInfo(targetPath);
-                if (fi.IsReadOnly)
+                if(fi.IsReadOnly)
                     fi.Attributes = fi.Attributes & ~FileAttributes.ReadOnly;
             }
 
             File.Copy(path, targetPath, true);
+
+            return Message.Info($"{path} copied to {targetPath}");
         }
     }
 
@@ -171,9 +178,11 @@ namespace BFUlib
 
         protected override bool IsConnected() => _client?.IsConnected == true;
 
-        protected override void DoUpload(string path, string targetPath)
+        protected override MessageList DoUpload(string path, string targetPath)
         {
             _client.UploadFile(path, targetPath, FtpExists.Overwrite, true, FtpVerify.Retry);
+
+            return Message.Info($"{path} uploaded to {_location.Name}:{targetPath}");
         }
     }
 
@@ -215,42 +224,47 @@ namespace BFUlib
 
         protected override bool IsConnected() => _client?.IsConnected == true;
 
-        protected override void DoUpload(string path, string targetPath)
+        protected override MessageList DoUpload(string path, string targetPath)
         {
+            var ml = new MessageList();
+
             try
             {
-                UploadAndIgnoreSetTime(path, targetPath);
+                return UploadAndIgnoreSetTime(path, targetPath);
             }
             catch(ScpException xcp)
             {
                 if(xcp.Message.ToLowerInvariant().Contains("no such file or directory"))
                 {
-                    CreateDirectory(Path.GetDirectoryName(targetPath));
-                    UploadAndIgnoreSetTime(path, targetPath);
+                    ml.Add(CreateDirectory(Path.GetDirectoryName(targetPath)));
+                    ml.Add(UploadAndIgnoreSetTime(path, targetPath));
                 }
                 else if(xcp.Message.ToLowerInvariant().Contains("permission denied"))
                 {
-                    ChangeRights(targetPath);
-                    UploadAndIgnoreSetTime(path, targetPath);
+                    ml.Add(ChangeRights(targetPath));
+                    ml.Add(UploadAndIgnoreSetTime(path, targetPath));
                 }
                 else
                 {
-                    Debug.WriteLine(xcp.Message);
-                    throw;
+                    ml.Add(Message.Error($"Error uploading {path} to {_location.Name}:{targetPath}", xcp));
                 }
             }
             catch(Exception e)
             {
-                Debug.WriteLine(e.Message);
-                throw;
+                ml.Add(Message.Error($"Error uploading {path} to {_location.Name}:{targetPath}", e));
             }
+
+            return ml;
         }
 
-        private void UploadAndIgnoreSetTime(string path, string targetPath)
+        private MessageList UploadAndIgnoreSetTime(string path, string targetPath)
         {
+            var ml = new MessageList();
+
             try
             {
                 _client.Upload(new FileInfo(path), targetPath);
+                ml.Add(Message.Info($"{path} uploaded to {_location.Name}:{targetPath}"));
             }
             //suddenly this version leads to a segfault on Mac, turn to the classic approach
             //catch(ScpException scpXcp) when(scpXcp.Message.ToLowerInvariant().Contains("set times: Operation not permitted"))
@@ -260,7 +274,10 @@ namespace BFUlib
             catch(ScpException xcp)
             {
                 if(xcp.Message.ToLowerInvariant().Contains("set times: operation not permitted"))
+                {
+                    ml.Add(Message.Info($"{path} uploaded to {_location.Name}:{targetPath}"));
                     Debug.WriteLine($"Ignore: {xcp.Message}");
+                }
                 else
                     throw;
             }
@@ -277,34 +294,49 @@ namespace BFUlib
 
                         string cmdStr = string.Format(cmd.Cmd, targetPath);
                         var r = _cmdClient.RunCommand(cmdStr);
-                        Console.WriteLine($"{cmdStr}: {r.ExitStatus} {r.Result}");
+                        ml.Add(Message.Info($"{cmdStr}: {r.ExitStatus} {r.Result}"));
                     }
                 }
                 catch(Exception xcp)
                 {
-                    Console.WriteLine(xcp.Message);
+                    ml.Add(Message.Error("Commands failed", xcp));
                 }
             }
+
+            return ml;
         }
 
-        private void CreateDirectory(string dir)
+        private MessageList CreateDirectory(string dir)
         {
             ReconnectCmdIfNeeded();
 
             //the sudo version needs the following line added to /etc/sudoers with visudo
             //MYUSER   ALL = NOPASSWD: /bin/mkdir
-            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"mkdir -p {dir}");
+            var cmdStr = (_location.UseSudoInCmds ? "sudo " : "") + $"mkdir -p {dir}";
+            var r = _cmdClient.RunCommand(cmdStr);
+
+            return Message.Info($"{cmdStr}: {r.ExitStatus} {r.Result}");
         }
 
-        private void ChangeRights(string path)
+        private MessageList ChangeRights(string path)
         {
             ReconnectCmdIfNeeded();
+
+            var ml = new MessageList();
 
             //the sudo version needs the following lines added to /etc/sudoers with visudo
             //MYUSER   ALL = NOPASSWD: /bin/touch
             //MYUSER   ALL = NOPASSWD: /bin/chmod
-            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"touch {path}");
-            _cmdClient.RunCommand((_location.UseSudoInCmds ? "sudo " : "") + $"chmod a+rw {path}");
+            var cmdStr = (_location.UseSudoInCmds ? "sudo " : "") + $"touch {path}";
+            _cmdClient.RunCommand(cmdStr);
+            var r = _cmdClient.RunCommand(cmdStr);
+            ml.Add(Message.Info($"{cmdStr}: {r.ExitStatus} {r.Result}"));
+
+            cmdStr = (_location.UseSudoInCmds ? "sudo " : "") + $"chmod a+rw {path}";
+            r = _cmdClient.RunCommand(cmdStr);
+            ml.Add(Message.Info($"{cmdStr}: {r.ExitStatus} {r.Result}"));
+
+            return ml;
         }
 
         private void ReconnectCmdIfNeeded()

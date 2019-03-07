@@ -33,10 +33,13 @@ namespace BFU
             }
 
             var log = new Log(settings.LogPath);
+            log.AdditionalLogger = Console.WriteLine;
 
             var tp = new TaskProcessor(settings);
             try
             {
+                tp.BfuTaskProcessed += (task) => TaskFinished(task, log);
+
                 await tp.StartAsync();
                 Console.WriteLine("Connected.");
                 await tp.ProcessAsync();
@@ -53,6 +56,11 @@ namespace BFU
             {
                 tp.Stop();
             }
+        }
+
+        private static void TaskFinished(BfuTask task, Log log)
+        {
+            log.Write(task.Messages.ToString());
         }
 
         private static void UsageReport()

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -135,8 +136,16 @@ namespace BFUlib
 
         private void TaskFinished(BfuTask task)
         {
-            if(!_queue.TryRemove(task.Guid, out BfuTask tmp))
+            int retries = 0;
+            while(!_queue.TryRemove(task.Guid, out BfuTask tmp))
+            {
                 Task.Delay(TimeSpan.FromMilliseconds(100));
+                if(retries++ > 10)
+                {
+                    Debug.WriteLine("Can not remove task from queue");
+                    break;
+                }
+            }
 
             BfuTaskProcessed?.Invoke(task);
 

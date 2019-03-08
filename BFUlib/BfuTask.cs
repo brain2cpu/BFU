@@ -45,7 +45,7 @@ namespace BFUlib
             try
             {
                 Messages.Add(await _connection.UploadAsync(_path, _targetPath));
-                Status = CommandStatus.Success;
+                Status = Messages.IsSuccess ? CommandStatus.Success : CommandStatus.Failed;
             }
             catch(Exception xcp)
             {

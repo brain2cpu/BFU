@@ -28,7 +28,7 @@ namespace BFUlib
                 }
             }
 
-            AdditionalLogger?.Invoke(msg);
+            AdditionalLogger?.Invoke(s);
 
             return s;
         }

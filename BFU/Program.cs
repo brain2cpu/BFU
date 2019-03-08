@@ -38,7 +38,7 @@ namespace BFU
             var tp = new TaskProcessor(settings);
             try
             {
-                tp.BfuTaskProcessed += (task) => TaskFinished(task, log);
+                tp.BfuTaskProcessed += (task) => log.Write(task.Messages.ToString());
 
                 await tp.StartAsync();
                 Console.WriteLine("Connected.");
@@ -56,11 +56,6 @@ namespace BFU
             {
                 tp.Stop();
             }
-        }
-
-        private static void TaskFinished(BfuTask task, Log log)
-        {
-            log.Write(task.Messages.ToString());
         }
 
         private static void UsageReport()

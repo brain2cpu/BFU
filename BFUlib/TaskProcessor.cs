@@ -28,7 +28,6 @@ namespace BFUlib
 
         public ChangeList Changes { get; }
 
-        //TODO: probably should be just a private field
         private readonly ConcurrentDictionary<Guid, BfuTask> _queue = new ConcurrentDictionary<Guid, BfuTask>();
 
         public event Action<BfuTask> BfuTaskProcessed;

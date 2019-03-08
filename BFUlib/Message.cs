@@ -43,9 +43,11 @@ namespace BFUlib
         {
             var sb = new StringBuilder();
 
-            foreach (var msg in Messages)
+            foreach(var msg in Messages)
             {
-                sb.AppendLine($"{msg.Type}: {msg.Content}");
+                if(msg.Type != MessageType.Info)
+                    sb.Append($"{msg.Type}: ");
+                sb.AppendLine(msg.Content);
             }
 
             return sb.ToString();

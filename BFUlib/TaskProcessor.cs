@@ -39,15 +39,18 @@ namespace BFUlib
 
             _settings = settings;
 
+            //it is checked in the above if
+            // ReSharper disable PossibleNullReferenceException
             foreach(var location in _settings.TargetList)
             {
                 _targetList.Add(new Remote(location, Connection.Create(location)));
             }
 
-            Changes = string.IsNullOrEmpty(settings.ChangeListPath) ? null : new ChangeList(settings.ChangeListPath);
+            Changes = string.IsNullOrEmpty(_settings.ChangeListPath) ? null : new ChangeList(_settings.ChangeListPath);
 
-            _fileWatcher = new FileWatcher(settings.LocalPath, settings.IgnorePatterns)
+            _fileWatcher = new FileWatcher(_settings.LocalPath, _settings.IgnorePatterns)
             { ExitRequestFile = settings.ExitRequestFile };
+            // ReSharper restore PossibleNullReferenceException
         }
 
         public async Task StartAsync()
@@ -111,12 +114,11 @@ namespace BFUlib
                             break;
 
                         case Operation.Delete:
-                            //Log($"Local delete of: {fileOperation.Path}");
+                            Debug.WriteLine($"Local delete of: {fileOperation.Path}");
                             break;
 
                         default:
-                            //Log($"ERROR: {fileOperation.Operation} not implemented");
-                            break;
+                            throw new NotImplementedException(($"{fileOperation.Operation} not implemented"));
                     }
 
                     continue;
@@ -136,7 +138,7 @@ namespace BFUlib
         private void TaskFinished(BfuTask task)
         {
             int retries = 0;
-            while(!_queue.TryRemove(task.Guid, out BfuTask tmp))
+            while(!_queue.TryRemove(task.Guid, out BfuTask _))
             {
                 Task.Delay(TimeSpan.FromMilliseconds(100));
                 if(retries++ > 10)

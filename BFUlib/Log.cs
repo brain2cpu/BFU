@@ -9,6 +9,8 @@ namespace BFUlib
 
         private readonly string _path;
 
+        public Action<string> AdditionalLogger;
+
         public Log(string path) => _path = path;
 
         public string Write(string msg)
@@ -25,6 +27,8 @@ namespace BFUlib
                     }
                 }
             }
+
+            AdditionalLogger?.Invoke(s);
 
             return s;
         }

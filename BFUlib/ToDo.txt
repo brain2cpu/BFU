@@ -1,9 +1,5 @@
-﻿- timestamped backup to be saved only if differs from the previous one (in case of any other failes)
-- create a backup-task list (one such task for every file and every location), and keep track of operations in this
-   way (if done first the fix above is not needed anymore)
-- create a separate retry queue to not block new tasks
-- the error must specify location details
-- add option to execute delete operations as well
-- add a more detailed error log
+﻿- add option to execute delete operations as well
+- if a new upload is added to a location for a file already in the queue with failed / pending
+  delete the existing task or skip adding the new one
 
 - create WPF project

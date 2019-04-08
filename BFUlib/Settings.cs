@@ -69,6 +69,8 @@ namespace BFUlib
         public const int DefaultFtpPort = 21;
         public const int DefaultScpPort = 22;
 
+        public string ExitRequestFile { get; set; } = ".exit";
+
         public bool AllowMultiThreadedUpload { get; set; } = true;
 
         public List<Location> TargetList { get; } = new List<Location>();

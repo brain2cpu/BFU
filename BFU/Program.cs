@@ -33,20 +33,17 @@ namespace BFU
             }
 
             var log = new Log(settings.LogPath);
-            var changes = string.IsNullOrEmpty(settings.ChangeListPath) ? null : new ChangeList(settings.ChangeListPath);
+            log.AdditionalLogger = Console.WriteLine;
 
-            var fileHandler = new FileHandler(settings);
-            var fileWatcher = new FileWatcher(settings.LocalPath, settings.IgnorePatterns)
-                {ExitRequestFile = ".exit"};
-
+            var tp = new TaskProcessor(settings);
             try
             {
-                await fileHandler.ConnectAllAsync();
-                Console.WriteLine("Connected.");
-                fileWatcher.Start();
-                Console.WriteLine($"Ready.{Environment.NewLine}");
+                tp.BfuTaskProcessed += (task) => log.Write(task.Messages.ToString());
 
-                await Process(log, changes, fileHandler, fileWatcher);
+                await tp.StartAsync();
+                Console.WriteLine("Connected.");
+                await tp.ProcessAsync();
+
                 return 0;
             }
             catch(Exception xcp)
@@ -57,52 +54,7 @@ namespace BFU
             }
             finally
             {
-                fileWatcher.Stop();
-                fileHandler.DisconnectAll();
-            }
-        }
-
-        private static async Task Process(Log log, ChangeList changes, FileHandler fileHandler, FileWatcher fileWatcher)
-        {
-            void Log(string msg) => Console.WriteLine(log.Write(msg));
-
-            bool exit = false;
-            fileWatcher.ExitRequested += () => exit = true;
-
-            while(!exit)
-            {
-                if(fileWatcher.Queue.TryPeek(out var fileOperation))
-                {
-                    switch(fileOperation.Operation)
-                    {
-                        case Operation.Add:
-                        case Operation.Change:
-                            if(await fileHandler.UploadAsync(fileOperation.Path))
-                            {
-                                fileWatcher.Queue.TryDequeue(out fileOperation);
-
-                                changes?.Add(fileOperation.Path);
-                                Log($"Upload {fileOperation.Path}");
-                            }
-                            else
-                            {
-                                Log($"Upload failed {fileOperation.Path}{Environment.NewLine}{fileHandler.LastUploadErrors}");
-                                await Task.Delay(TimeSpan.FromSeconds(1));
-                            }
-                            break;
-
-                        case Operation.Delete:
-                            fileWatcher.Queue.TryDequeue(out fileOperation);
-                            Log($"Local delete of: {fileOperation.Path}");
-                            break;
-
-                        default:
-                            Log($"ERROR: {fileOperation.Operation} not implemented");
-                            break;
-                    }
-                }
-                else
-                    await Task.Delay(TimeSpan.FromSeconds(1));
+                tp.Stop();
             }
         }
 
